@@ -1,5 +1,3 @@
-import csv
-
 import argparse
 import os
 import random
@@ -18,56 +16,11 @@ import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-import torchvision.models as models
 from model import resnet18
 from dataset import get_train_dataset, get_test_dataset
 
-model_names = sorted(name for name in models.__dict__
-                     if name.islower() and not name.startswith("__") and callable(models.__dict__[name]))
-
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-parser.add_argument('--data', metavar='DIR', default='/home/zhangzhi/Data/exports/ImageNet2012', help='path to dataset')
-parser.add_argument('-a',
-                    '--arch',
-                    metavar='ARCH',
-                    default='resnet18',
-                    choices=model_names,
-                    help='model architecture: ' + ' | '.join(model_names) + ' (default: resnet18)')
-parser.add_argument('-j',
-                    '--workers',
-                    default=4,
-                    type=int,
-                    metavar='N',
-                    help='number of data loading workers (default: 4)')
-parser.add_argument('--epochs', default=90, type=int, metavar='N', help='number of total epochs to run')
-parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
-parser.add_argument('-b',
-                    '--batch-size',
-                    default=256,
-                    type=int,
-                    metavar='N',
-                    help='mini-batch size (default: 256), this is the total '
-                         'batch size of all GPUs on the current node when '
-                         'using Data Parallel or Distributed Data Parallel')
-parser.add_argument('--lr',
-                    '--learning-rate',
-                    default=0.2,
-                    type=float,
-                    metavar='LR',
-                    help='initial learning rate',
-                    dest='lr')
-parser.add_argument('--momentum', default=0.9, type=float, metavar='M', help='momentum')
-parser.add_argument('--wd',
-                    '--weight-decay',
-                    default=1e-4,
-                    type=float,
-                    metavar='W',
-                    help='weight decay (default: 1e-4)',
-                    dest='weight_decay')
-parser.add_argument('-p', '--print-freq', default=10, type=int, metavar='N', help='print frequency (default: 10)')
-parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
-parser.add_argument('--pretrained', dest='pretrained', action='store_true', help='use pre-trained model')
-parser.add_argument('--seed', default=None, type=int, help='seed for initializing training. ')
+parser.add_argument('--local_rank', default=-1, type=int, help='node rank for distributed training')
 
 
 def reduce_mean(tensor, nprocs):
@@ -81,14 +34,6 @@ def main():
     args = parser.parse_args()
     args.nprocs = torch.cuda.device_count()
 
-    mp.spawn(main_worker, nprocs=args.nprocs, args=(args.nprocs, args))
-
-
-def main_worker(local_rank, nprocs, args):
-    print(local_rank)
-
-    args.local_rank = local_rank
-
     if args.seed is not None:
         random.seed(args.seed)
         torch.manual_seed(args.seed)
@@ -99,52 +44,48 @@ def main_worker(local_rank, nprocs, args):
                       'You may see unexpected behavior when restarting '
                       'from checkpoints.')
 
-    best_acc1 = .0
+    main_worker(args.local_rank, args.nprocs, args)
 
-    dist.init_process_group(backend='nccl', init_method='tcp://127.0.0.1:23456', world_size=args.nprocs,
-                            rank=local_rank)
-    # create model
-    model = resnet18()
+'''
+    需要定义一个 main_worker，用来进行分布式训练，训练流程都需要写在 main_worker之中， main_worker就相当于每一个进程，通过传递的 local_rank 不同表示不同的进程
+    main_worker 传递三个参数:
+        - local_rank 当前进程的 index
+        - nprocs 总共有多少个进程参与训练
+        - args，自己指定的超参
+'''
+def main_worker(local_rank, nprocs, args):
+
+    # 1. 分布式初始化，对于每一个进程都需要进行初始化，所以定义在 main_worker中
+    cudnn.benchmark = True
+    dist.init_process_group(backend='nccl')
+
+    # 2. 基本定义，模型-损失函数-优化器
+    model = resnet18()  # 定义模型，将对应进程放到对应的GPU上， .cuda(local_rank) / .set_device(local_rank)
     torch.cuda.set_device(local_rank)
     model.cuda(local_rank)
-    # When using a single GPU per process and per
-    # DistributedDataParallel, we need to divide the batch size
-    # ourselves based on the total number of GPUs we have
-    args.batch_size = int(args.batch_size / args.nprocs)
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])
-
-    # define loss function (criterion) and optimizer
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])  # 将模型用 DistributedDataParallel 包裹
     criterion = nn.CrossEntropyLoss().cuda(local_rank)
+    optimizer = torch.optim.SGD(model.parameters(), 0.1, momentum=0.9, weight_decay=1e-4)
 
-    optimizer = torch.optim.SGD(model.parameters(), args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
-    cudnn.benchmark = True
+    # 3. 加载数据，
+    batch_size = int(args.batch_size / nprocs) # 需要手动划分 batch_size 为 mini-batch_size
 
-    # Data loading code
     train_dataset = get_train_dataset()
     train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-    train_loader = torch.utils.data.DataLoader(train_dataset,
-                                               batch_size=args.batch_size,
-                                               num_workers=2,
-                                               pin_memory=True,
-                                               sampler=train_sampler)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, num_workers=2, pin_memory=True, sampler=train_sampler)
 
-    val_dataset = get_test_dataset()
-    val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
-    val_loader = torch.utils.data.DataLoader(val_dataset,
-                                             batch_size=args.batch_size,
-                                             num_workers=2,
-                                             pin_memory=True,
-                                             sampler=val_sampler)
+    test_dataset = get_test_dataset()
+    test_sampler = torch.utils.data.distributed.DistributedSampler(test_dataset)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, num_workers=2, pin_memory=True, sampler=test_sampler)
 
     if args.evaluate:
-        validate(val_loader, model, criterion, local_rank, args)
+        validate(test_loader, model, criterion, local_rank, args)
         return
 
     for epoch in range(args.start_epoch, args.epochs):
-
         train_sampler.set_epoch(epoch)
-        val_sampler.set_epoch(epoch)
+        test_sampler.set_epoch(epoch)
 
         adjust_learning_rate(optimizer, epoch, args)
 
@@ -272,7 +213,6 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
-
     def __init__(self, name, fmt=':f'):
         self.name = name
         self.fmt = fmt
@@ -314,12 +254,12 @@ class ProgressMeter(object):
 
 def adjust_learning_rate(optimizer, epoch, args):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    lr = args.lr * (0.1 ** (epoch // 30))
+    lr = args.lr * (0.1**(epoch // 30))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
 
-def accuracy(output, target, topk=(1,)):
+def accuracy(output, target, topk=(1, )):
     """Computes the accuracy over the k top predictions for the specified values of k"""
     with torch.no_grad():
         maxk = max(topk)
@@ -327,7 +267,7 @@ def accuracy(output, target, topk=(1,)):
 
         _, pred = output.topk(maxk, 1, True, True)
         pred = pred.t()
-        correct = pred.eq(target.view(1, -1).expand_as(pred)).contiguous()
+        correct = pred.eq(target.view(1, -1).expand_as(pred))
 
         res = []
         for k in topk:

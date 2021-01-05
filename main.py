@@ -94,6 +94,7 @@ def main():
 
 
 def main_worker(local_rank, nprocs, args):
+    print(local_rank)
     best_acc1 = .0
 
     dist.init_process_group(backend='nccl')

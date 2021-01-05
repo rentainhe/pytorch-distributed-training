@@ -1,5 +1,5 @@
 # pytorch-distributed-training
-Distribute Dataparaller (DDP) Training on Pytorch
+Distribute Dataparallel (DDP) Training on Pytorch
 
 ## Features
 * Easy to study DDP training
@@ -31,7 +31,7 @@ Distribute Dataparaller (DDP) Training on Pytorch
 - rank: 进程序号，用于进程间通讯，表示进程优先级，`rank=0`表示`主进程`
 - local_rank: 进程内，`GPU`编号，非显示参数，由`torch.distributed.launch`内部指定，`rank=3, local_rank=0` 表示第`3`个进程的第`1`块`GPU`
 
-### 3. Useful API
+### 3. API Introduction
 - 库文件导入
 ```python
 import datetime
@@ -57,9 +57,98 @@ __function__: 每个进程中调用该函数，用于初始化该进程。在使
   - 共享文件系统: `init_method='file:///mnt/nfs/sharedfile'`, 这个初始化方法比较麻烦，提供的共享文件`在一开始的时候不应存在`，这个方法在结束时也`不会自动删除共享文件`，所以在每次使用时应该`手动删除`上次的`自动创建`的共享文件
 - `rank`: rank表示当前进程的优先级。如果指定了`store`参数，则必须指定该参数，`rank=0`表示主进程，即`master`节点。
 - `world_size`: 进程总数，如果指定了`store`参数，则需要指定该参数
+- `timeout`: 指定每个进程的超时时间，可选参数，`datetime.timedelta`对象，默认为`30`分钟，仅用于`gloo`后端
+- 所有`worker`可访问的`key / value`，用于交换连接/地址信息。与`init_method`互斥。
 
+### Usage
+#### 1. 获取当前进程的index
+pytorch可以通过torch.distributed.lauch启动器，在命令行分布式地执行.py文件, 在执行的过程中会将当前进程的index通过参数传递给python
+```python
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--local_rank', default=-1, type=int,
+                    help='node rank for distributed training')
+args = parser.parse_args()
+print(args.local_rank)
+```
+#### 2. 使用init_process_group 
+设置GPU之间通信使用的后端和端口
+```python
+import torch.distributed as dist
+dist.init_process_group(backend='nccl')
+```
+#### 3. 使用DistributedSampler对数据集进行划分
+可以将每个batch分配成几个mini-batch分配给不同进程进行训练
+```python
+import torch
+train_dataset = ...
+train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+trainloader = torch.utils.data.DataLoader(train_dataset, batch_size=..., num_workers=..., pin_memory=..., 
+                                          sampler=train_sampler)
+
+test_dataset = ...
+test_sampler = torch.utils.data.distributed.DistributedSampler(test_dataset)
+testloader = torch.utils.data.DataLoader(train_dataset, batch_size=..., num_workers=..., pin_memory=..., 
+                                         sampler=test_sampler) 
+```
+#### 4. 使用 DistributedDataParallel包装模型
+可以帮助我们将不同GPU上求得的梯度进行all-reduce操作，不同GPU模型的梯度均为all-reduce之前GPU梯度的均值
+```python
+import torch
+from torchvision.models import resnet18
+model = resnet18()
+model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank])
+```
+
+#### 5. 将模型加载到当前进程使用的GPU中，正常进行反向传播
+```python
+torch.cuda.set_device(args.local_rank)
+
+model.cuda()
+
+for epoch in range(100):
+   for batch_idx, (data, target) in enumerate(train_loader):
+      images = images.cuda(non_blocking=True)
+      target = target.cuda(non_blocking=True)
+      ...
+      output = model(images)
+      loss = criterion(output, target)
+      ...
+      optimizer.zero_grad()
+      loss.backward()
+      optimizer.step()
+```
+
+#### 6. Command Line 启动
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 main.py
+```
+
+## Details
+### 1. DistributedSampler
+在 `Pytorch1.2` 版本之前，DistributedSampler没有`shuffle`参数，在 `Pytorch1.2` 之后出现`shuffle`参数，但是在采样数据的时候，shuffle使用的随机种子等于当前的epoch
+
+如果不手动修改 epoch 的话，每一轮迭代，shuffle的顺序相同，起不到shuffle的作用，如果想使用shuffle的功能，需要手动设置`DistributedSampler`的epoch
+```python
+import torch
+batch_size = 128
+
+train_dataset = ...
+train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, num_workers=2, pin_memory=True, sampler=train_sampler)
+
+test_dataset = ...
+test_sampler = torch.utils.data.distributed.DistributedSampler(test_dataset)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, num_workers=2, pin_memory=True, sampler=test_sampler)
+
+for epoch in range(args.epochs):
+    train_sampler.set_epoch(epoch)
+    test_sampler.set_epoch(epoch)
+    ...
+```
 
 ## Implemented Work
 参考的文章如下：
 - [分布式训练（理论篇）](https://zhuanlan.zhihu.com/p/129912419)
+- [DistributedSampler的问题](https://www.zhihu.com/question/67209417/answer/1017851899)
 - I learned from this [repo](https://github.com/tczhangzhi/pytorch-distributed), and want to make it easier and cleaner.
