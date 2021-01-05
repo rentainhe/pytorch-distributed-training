@@ -25,6 +25,38 @@ Distribute Dataparaller (DDP) Training on Pytorch
     - All Gather：累积得到参数之后，再进行一次传递，同步到每一个GPU上
   - 关于 Ring All-Reduce 以及其他分布式理论基础，在 [分布式训练（理论篇）](https://zhuanlan.zhihu.com/p/129912419) 里有很精彩的解读，这里不加赘述
 
+### 2. Basic Concept
+- group: 表示进程组，默认情况下只有一个进程组。
+- world size: 全局进程个数
+- rank: 进程序号，用于进程间通讯，表示进程优先级，`rank=0`表示`主进程`
+- local_rank: 进程内，`GPU`编号，非显示参数，由`torch.distributed.launch`内部指定，`rank=3, local_rank=0` 表示第`3`个进程的第`1`块`GPU`
+
+### 3. Useful API
+- 库文件导入
+```python
+import datetime
+import torch.distributed as dist
+```
+
+- 初始化进程组：`init_process_group`
+```python
+import datetime
+import torch.distributed as dist
+dist.init_process_group(backend='nccl',
+                        init_method=None,
+                        timeout=datetime.timedelta(0, 1800),
+                        world_size=-1,
+                        rank=-1,
+                        store=None)
+```
+__function__: 每个进程中调用该函数，用于初始化该进程。在使用DDP时，该函数需要在`distributed`内所有相关函数之前使用
+
+- `backend`: 指定当前进程所需使用的`通信后端`，`小写字符串`，支持的通信后端有 `gloo`, `mpi`, `nccl`。__CPU__ 上使用`gloo`和`mpi`, __GPU__ 上建议使用`nccl` 
+- `init_method`: 指定当前进程组的初始化方式，可选参数，与`store`参数互斥
+  - TCP初始化: `init_method='tcp://ip:port'`, ip表示主节点的ip地址, rank=0的主机的ip地址, 然后再选择一个闲置的端口号即可
+  - 共享文件系统: `init_method='file:///mnt/nfs/sharedfile'`, 这个初始化方法比较麻烦，提供的共享文件`在一开始的时候不应存在`，这个方法在结束时也`不会自动删除共享文件`，所以在每次使用时应该`手动删除`上次的`自动创建`的共享文件
+- `rank`: rank表示当前进程的优先级。如果指定了`store`参数，则必须指定该参数，`rank=0`表示主进程，即`master`节点。
+- `world_size`: 进程总数，如果指定了`store`参数，则需要指定该参数
 
 
 ## Implemented Work
