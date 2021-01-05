@@ -104,15 +104,15 @@ model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_
 ```python
 torch.cuda.set_device(args.local_rank)
 
-model.cuda()
+model.cuda(args.local_rank)
 
-for epoch in range(100):
-   for batch_idx, (data, target) in enumerate(train_loader):
+for epoch in range(300):
+   for batch_idx, (images, target) in enumerate(train_loader):
       images = images.cuda(non_blocking=True)
       target = target.cuda(non_blocking=True)
       ...
-      output = model(images)
-      loss = criterion(output, target)
+      pred = model(images)
+      loss = loss_function(pred, target)
       ...
       optimizer.zero_grad()
       loss.backward()
