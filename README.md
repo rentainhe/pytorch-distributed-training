@@ -155,7 +155,7 @@ for epoch in range(args.epochs):
     ...
 ```
 
-### 3. print training information & save model
+### 3. print training information
 在训练过程中的打印，一般在主进程打印就行了，如果不加进程判断，会打印多次训练信息：
 ```python
 if args.local_rank == 0:
