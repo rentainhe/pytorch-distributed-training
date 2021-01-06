@@ -213,9 +213,9 @@ def train(train_loader, model, criterion, optimizer, epoch, local_rank, args):
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
-
-        if i % args.print_freq == 0:
-            progress.display(i)
+        if args.local_rank == 0:
+            if i % args.print_freq == 0:
+                progress.display(i)
 
 
 def validate(val_loader, model, criterion, local_rank, args):

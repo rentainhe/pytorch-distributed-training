@@ -147,6 +147,14 @@ for epoch in range(args.epochs):
     ...
 ```
 
+### 2. save model
+如果单纯写一个保存模型的函数，放在main_worker中，会每个进程都保存一次模型，然而我们只需要保存一次模型就可以，所以需要进行进程判断，如果当前进程是主进程，则保存模型：
+```python
+def main_worker(local_rank, nprocs, args):
+    if args.local_rank == 0: # 在保存模型之前加上这一句话     
+        save_model_function()
+```
+
 ## Implemented Work
 参考的文章如下：
 - [分布式训练（理论篇）](https://zhuanlan.zhihu.com/p/129912419)

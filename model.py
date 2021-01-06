@@ -1,11 +1,10 @@
 import torch.nn as nn
-import torch
+
 class BasicBlock(nn.Module):
-    # Residual block for resnet18 and resnet 34
+
     expansion = 1 # 维度拓展
     def __init__(self, in_channels, out_channels, stride=1):
         super().__init__()
-        print("in_channels,out_channels ", in_channels,' ',out_channels)
 
         # residual function
         self.residual_function = nn.Sequential(
