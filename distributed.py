@@ -74,6 +74,7 @@ def main_worker(local_rank, nprocs, args):
     #     return
 
     for epoch in range(args.epochs):
+        start = time.time()
         # 需要设置sampler的epoch为当前epoch来保证dataloader的shuffle的有效性
         train_sampler.set_epoch(epoch)
         test_sampler.set_epoch(epoch)
@@ -102,10 +103,12 @@ def main_worker(local_rank, nprocs, args):
                     'Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(
                         reduced_loss,
                         optimizer.param_groups[0]['lr'],
-                        epoch=epoch,
+                        epoch=epoch+1,
                         trained_samples=step * args.batch_size + len(images),
                         total_samples=len(train_loader.dataset)
                     ))
+        finish = time.time()
+        print('epoch {} training time consumed: {:.2f}s'.format(epoch, finish - start))
         # validate after every epoch
         validate(test_loader, model, criterion, local_rank, args)
 

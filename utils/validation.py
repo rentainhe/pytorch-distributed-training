@@ -40,9 +40,13 @@ def validate(val_loader, model, criterion, local_rank, args):
             # measure elapsed time
             batch_time.update(time.time() - end)
             end = time.time()
-            progress.display(i)
+            # 只在主进程打印信息
+            if local_rank == 0:
+                progress.display(i)
 
         # TODO: this should also be done with the ProgressMeter
-        print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(top1=top1, top5=top5))
+        # 只在主进程打印信息
+        if local_rank == 0:
+            print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(top1=top1, top5=top5))
 
     return top1.avg
