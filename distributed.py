@@ -1,8 +1,5 @@
 import argparse
-import random
-import shutil
 import time
-import warnings
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -11,9 +8,9 @@ import torch.distributed as dist
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
-from model import resnet18
-from dataset import get_train_dataset, get_test_dataset
-from utils.util import reduce_mean, AverageMeter, ProgressMeter, accuracy
+from utils.model import resnet18
+from utils.dataset import get_train_dataset, get_test_dataset
+from utils.util import reduce_mean
 from utils.validation import validate
 import torch.optim as optim
 import torch.multiprocessing as mp
