@@ -71,7 +71,8 @@ def main_worker(local_rank, nprocs, args):
     #     return
 
     for epoch in range(args.epochs):
-        start = time.time()
+        if args.local_rank == 0:
+            start = time.time()
         # 需要设置sampler的epoch为当前epoch来保证dataloader的shuffle的有效性
         train_sampler.set_epoch(epoch)
         test_sampler.set_epoch(epoch)
@@ -104,6 +105,8 @@ def main_worker(local_rank, nprocs, args):
                         trained_samples=step * args.batch_size + len(images),
                         total_samples=len(train_loader.dataset)
                     ))
+
+            if args.local_rank == 0:
                 finish = time.time()
                 print('epoch {} training time consumed: {:.2f}s'.format(epoch, finish - start))
 
