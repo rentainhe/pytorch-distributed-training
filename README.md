@@ -121,11 +121,19 @@ for epoch in range(300):
 
 #### 6. Command Line 启动
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 main.py
+CUDA_VISIBLE_DEVICES=0,1,2,3 python distributed.py
 ```
 
 ## Details
-### 1. DistributedSampler
+### 1. DDP initialization
+在为每个进程初始化的时候，尽量使用TCP初始化方法，使用GPU进行分布式训练的时候后端尽量选择nccl
+```python
+import torch.distributed as dist
+dist.init_process_group(backend='nccl', init_method='tcp://ip:port', world_size=..., rank=...)
+```
+- init_method: ip对应于本机ip，port对应本机空闲的端口
+
+### 2. DistributedSampler
 在 `Pytorch1.2` 版本之前，DistributedSampler没有`shuffle`参数，在 `Pytorch1.2` 之后出现`shuffle`参数，但是在采样数据的时候，shuffle使用的随机种子等于当前的epoch
 
 如果不手动修改 epoch 的话，每一轮迭代，shuffle的顺序相同，起不到shuffle的作用，如果想使用shuffle的功能，需要手动设置`DistributedSampler`的epoch
@@ -147,7 +155,57 @@ for epoch in range(args.epochs):
     ...
 ```
 
-### 2. save model
+### 3. print training information & save model
+在训练过程中的打印，一般在主进程打印就行了，如果不加进程判断，会打印多次训练信息：
+```python
+if args.local_rank == 0:
+    print ...
+```
+
+### 4. reduce_mean
+用于计算不同进程所对应的同一个张量的均值
+```python
+import torch.distributed as dist
+def reduce_mean(tensor, nprocs):
+    rt = tensor.clone()
+    dist.all_reduce(rt, op=dist.ReduceOp.SUM)
+    rt /= nprocs
+    return rt
+```
+
+### 5. torch.distributed.barrier()
+用于阻塞进程，只有当所有进程运行完这一语句之前的所有代码，才会继续执行，一般在计算loss和acc之前使用，防止由于进程执行速度不一致带来的问题
+```python
+import torch.distributed as dist
+# 以下函数可以帮助计算不同进程的同一组张量对应的均值
+def reduce_mean(tensor, nprocs):
+    rt = tensor.clone()
+    dist.all_reduce(rt, op=dist.ReduceOp.SUM)
+    rt /= nprocs
+    return rt
+
+with torch.no_grad():
+    for i, (images, target) in enumerate(val_loader):
+        images = images.cuda(local_rank, non_blocking=True)
+        target = target.cuda(local_rank, non_blocking=True)
+        # compute output
+        output = model(images)
+        loss = criterion(output, target)
+        # measure accuracy and record loss
+        acc1, acc5 = accuracy(output, target, topk=(1, 5))
+    
+        torch.distributed.barrier()
+    
+        reduced_loss = reduce_mean(loss, args.nprocs)
+        reduced_acc1 = reduce_mean(acc1, args.nprocs)
+        reduced_acc5 = reduce_mean(acc5, args.nprocs)
+        
+        if args.local_rank == 0:
+            print("Average Loss: ", reduced_loss)
+            print("Average Acc@1: ", reduced_acc1)
+            print("Average Acc@5: ", reduced_acc5)
+```
+### 6. Save model
 如果单纯写一个保存模型的函数，放在main_worker中，会每个进程都保存一次模型，然而我们只需要保存一次模型就可以，所以需要进行进程判断，如果当前进程是主进程，则保存模型：
 ```python
 def main_worker(local_rank, nprocs, args):

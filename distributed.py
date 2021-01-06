@@ -20,6 +20,7 @@ parser.add_argument('--local_rank', default=-1, type=int, help='node rank for di
 parser.add_argument('--seed', default=None, type=int, help='seed for initializing training. ')
 parser.add_argument('-b','--batch-size', default=256, type=int)
 parser.add_argument('--epochs', default=200, type=int)
+parser.add_argument('--lr', default=0.2, type=float)
 
 def main():
     args = parser.parse_args()
@@ -39,7 +40,7 @@ def main_worker(local_rank, nprocs, args):
 
     # 1. 分布式初始化，对于每一个进程都需要进行初始化，所以定义在 main_worker中
     cudnn.benchmark = True
-    dist.init_process_group(backend='nccl', init_method='tcp://127.0.0.1:23456', world_size=args.nprocs,
+    dist.init_process_group(backend='nccl', init_method='tcp://10.24.82.29:23456', world_size=args.nprocs,
                             rank=local_rank)
 
     # 2. 基本定义，模型-损失函数-优化器
@@ -52,7 +53,7 @@ def main_worker(local_rank, nprocs, args):
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])  # 将模型用 DistributedDataParallel 包裹
     criterion = nn.CrossEntropyLoss().cuda(local_rank)
     # =================================
-    optimizer = torch.optim.SGD(model.parameters(), 0.1, momentum=0.9, weight_decay=1e-4)
+    optimizer = torch.optim.SGD(model.parameters(), args.lr, momentum=0.9, weight_decay=1e-4)
     train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
 
     # 3. 加载数据，
@@ -71,8 +72,7 @@ def main_worker(local_rank, nprocs, args):
     #     return
 
     for epoch in range(args.epochs):
-        if args.local_rank == 0:
-            start = time.time()
+        start = time.time()
         # 需要设置sampler的epoch为当前epoch来保证dataloader的shuffle的有效性
         train_sampler.set_epoch(epoch)
         test_sampler.set_epoch(epoch)
@@ -106,9 +106,9 @@ def main_worker(local_rank, nprocs, args):
                         total_samples=len(train_loader.dataset)
                     ))
 
-            if args.local_rank == 0:
-                finish = time.time()
-                print('epoch {} training time consumed: {:.2f}s'.format(epoch, finish - start))
+        finish = time.time()
+        if args.local_rank == 0:
+            print('epoch {} training time consumed: {:.2f}s'.format(epoch, finish - start))
 
         # validate after every epoch
         validate(test_loader, model, criterion, local_rank, args)
