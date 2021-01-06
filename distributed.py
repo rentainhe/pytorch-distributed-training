@@ -107,8 +107,9 @@ def main_worker(local_rank, nprocs, args):
                         trained_samples=step * args.batch_size + len(images),
                         total_samples=len(train_loader.dataset)
                     ))
-        finish = time.time()
-        print('epoch {} training time consumed: {:.2f}s'.format(epoch, finish - start))
+                finish = time.time()
+                print('epoch {} training time consumed: {:.2f}s'.format(epoch, finish - start))
+
         # validate after every epoch
         validate(test_loader, model, criterion, local_rank, args)
 
