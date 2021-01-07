@@ -244,7 +244,13 @@ def reduce_mean(tensor, nprocs):
     return rt
 ```
 
-### 5. torch.distributed.barrier()
+### 5. SyncBatchNorm
+在使用分布式训练的时候如果网络结构中使用了BatchNormalization，需要调整模型，使用分布式BatchNorm
+```python
+model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model).to(local_rank)
+```
+
+### 6. torch.distributed.barrier()
 用于阻塞进程，只有当所有进程运行完这一语句之前的所有代码，才会继续执行，一般在计算loss和acc之前使用，防止由于进程执行速度不一致带来的问题
 ```python
 import torch.distributed as dist
@@ -276,7 +282,7 @@ with torch.no_grad():
             print("Average Acc@1: ", reduced_acc1)
             print("Average Acc@5: ", reduced_acc5)
 ```
-### 6. Save model
+### 7. Save model
 如果单纯写一个保存模型的函数，放在main_worker中，会每个进程都保存一次模型，然而我们只需要保存一次模型就可以，所以需要进行进程判断，如果当前进程是主进程，则保存模型：
 ```python
 def main_worker(local_rank, nprocs, args):

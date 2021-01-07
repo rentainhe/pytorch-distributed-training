@@ -56,6 +56,7 @@ def main_worker(local_rank, nprocs, args):
     # ================================
     torch.cuda.set_device(local_rank) # 使用 set_device 和 cuda 来指定需要的 GPU
     model.cuda(local_rank)
+    model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model).to(local_rank)
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])  # 将模型用 DistributedDataParallel 包裹
     criterion = nn.CrossEntropyLoss()
     # =================================
