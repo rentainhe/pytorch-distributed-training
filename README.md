@@ -60,7 +60,7 @@ __function__: 每个进程中调用该函数，用于初始化该进程。在使
 - `timeout`: 指定每个进程的超时时间，可选参数，`datetime.timedelta`对象，默认为`30`分钟，仅用于`gloo`后端
 - 所有`worker`可访问的`key / value`，用于交换连接/地址信息。与`init_method`互斥。
 
-### Usage
+### Usage 单机多卡
 #### 1. 获取当前进程的index
 pytorch可以通过torch.distributed.lauch启动器，在命令行分布式地执行.py文件, 在执行的过程中会将当前进程的index通过参数传递给python
 ```python
@@ -71,58 +71,118 @@ parser.add_argument('--local_rank', default=-1, type=int,
 args = parser.parse_args()
 print(args.local_rank)
 ```
-#### 2. 使用init_process_group 
-设置GPU之间通信使用的后端和端口
+#### 2. 定义 main_worker 函数 
+主要的训练流程都写在main_worker函数中，main_worker需要接受三个参数（最后一个参数optional）: 
 ```python
+def main_worker(local_rank, nprocs, args):
+    training...
+```
+- local_rank: 接受当前进程的rank值，在一机多卡的情况下对应使用的GPU号
+- nprocs: 进程数量
+- args: 自己定义的额外参数
+
+main_worker,相当于你每个进程需要运行的函数（每个进程执行的函数内容是一致的，只不过传入的local_rank不一样）
+
+#### 3. main_worker函数中的整体流程
+main_worker函数中完整的训练流程
+```python
+import torch
 import torch.distributed as dist
-dist.init_process_group(backend='nccl')
+import torch.backends.cudnn as cudnn
+def main_worker(local_rank, nprocs, args):
+    args.local_rank = local_rank
+    # 分布式初始化，对于每个进程来说，都需要进行初始化
+    cudnn.benchmark = True
+    dist.init_process_group(backend='nccl', init_method='tcp://ip:port', world_size=nprocs, rank=local_rank)
+    # 模型、损失函数、优化器定义
+    model = ...
+    criterion = ...
+    optimizer = ...
+    # 设置进程对应使用的GPU
+    torch.cuda.set_device(local_rank)
+    model.cuda(local_rank)
+    # 使用分布式函数定义模型
+    model = model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])
+    
+    # 数据集的定义，使用 DistributedSampler
+    mini_batch_size = batch_size / nprocs # 手动划分 batch_size to mini-batch_size
+    train_dataset = ...
+    train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+    trainloader = torch.utils.data.DataLoader(train_dataset, batch_size=mini_batch_size, num_workers=..., pin_memory=..., 
+                                              sampler=train_sampler)
+    
+    test_dataset = ...
+    test_sampler = torch.utils.data.distributed.DistributedSampler(test_dataset)
+    testloader = torch.utils.data.DataLoader(train_dataset, batch_size=mini_batch_size, num_workers=..., pin_memory=..., 
+                                             sampler=test_sampler) 
+    
+    # 正常的 train 流程
+    for epoch in range(300):
+       for batch_idx, (images, target) in enumerate(trainloader):
+          images = images.cuda(non_blocking=True)
+          target = target.cuda(non_blocking=True)
+          ...
+          pred = model(images)
+          loss = loss_function(pred, target)
+          ...
+          optimizer.zero_grad()
+          loss.backward()
+          optimizer.step()
 ```
-#### 3. 使用DistributedSampler对数据集进行划分
-可以将每个batch分配成几个mini-batch分配给不同进程进行训练
+
+#### 4. 定义main函数
 ```python
+import argparse
 import torch
-train_dataset = ...
-train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-trainloader = torch.utils.data.DataLoader(train_dataset, batch_size=..., num_workers=..., pin_memory=..., 
-                                          sampler=train_sampler)
+parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
+parser.add_argument('--local_rank', default=-1, type=int, help='node rank for distributed training')
+parser.add_argument('--batch_size','--batch-size', default=256, type=int)
+parser.add_argument('--lr', default=0.1, type=float)
 
-test_dataset = ...
-test_sampler = torch.utils.data.distributed.DistributedSampler(test_dataset)
-testloader = torch.utils.data.DataLoader(train_dataset, batch_size=..., num_workers=..., pin_memory=..., 
-                                         sampler=test_sampler) 
-```
-#### 4. 使用 DistributedDataParallel包装模型
-可以帮助我们将不同GPU上求得的梯度进行all-reduce操作，不同GPU模型的梯度均为all-reduce之前GPU梯度的均值
-```python
-import torch
-from torchvision.models import resnet18
-model = resnet18()
-model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank])
-```
+def main_worker(local_rank, nprocs, args):
+    ...
 
-#### 5. 将模型加载到当前进程使用的GPU中，正常进行反向传播
-```python
-torch.cuda.set_device(args.local_rank)
+def main():
+    args = parser.parse_args()
+    args.nprocs = torch.cuda.device_count()
+    # 执行 main_worker
+    main_worker(args.local_rank, args.nprocs, args)
 
-model.cuda(args.local_rank)
-
-for epoch in range(300):
-   for batch_idx, (images, target) in enumerate(train_loader):
-      images = images.cuda(non_blocking=True)
-      target = target.cuda(non_blocking=True)
-      ...
-      pred = model(images)
-      loss = loss_function(pred, target)
-      ...
-      optimizer.zero_grad()
-      loss.backward()
-      optimizer.step()
+if __name__ == '__main__':
+    main()
 ```
 
-#### 6. Command Line 启动
+#### 5. Command Line 启动
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3 python distributed.py
+CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 distributed.py
 ```
+参考 [distributed.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/distributed.py)
+
+#### 6. 使用 torch.multiprocessing 来解决进程自发控制可能产生问题，这种方式比较稳定，推荐使用
+```python
+import argparse
+import torch
+import torch.multiprocessing as mp
+
+parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
+parser.add_argument('--local_rank', default=-1, type=int, help='node rank for distributed training')
+parser.add_argument('--batch_size','--batch-size', default=256, type=int)
+parser.add_argument('--lr', default=0.1, type=float)
+
+def main_worker(local_rank, nprocs, args):
+    ...
+
+def main():
+    args = parser.parse_args()
+    args.nprocs = torch.cuda.device_count()
+    # 将 main_worker 放入 mp.spawn 中
+    mp.spawn(main_worker, nprocs=args.nprocs, args=(args.nprocs, args))
+
+if __name__ == '__main__':
+    main()
+```
+
+
 
 ## Details
 ### 1. DDP initialization
@@ -150,8 +210,9 @@ test_sampler = torch.utils.data.distributed.DistributedSampler(test_dataset)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, num_workers=2, pin_memory=True, sampler=test_sampler)
 
 for epoch in range(args.epochs):
+    # 手动设置 epoch，来确保 shuffle 的有效性
     train_sampler.set_epoch(epoch)
-    test_sampler.set_epoch(epoch)
+    # test_sampler.set_epoch(epoch) test_sampler不需要shuffle
     ...
 ```
 
@@ -214,7 +275,8 @@ def main_worker(local_rank, nprocs, args):
 ```
 
 ## Implemented Work
-参考的文章如下：
+参考的文章如下（如果有文章没有引用，但是内容差不多的，可以提issue给我，我会补上，实在抱歉）：
+- [分布式训练](https://zhuanlan.zhihu.com/p/98535650)
 - [分布式训练（理论篇）](https://zhuanlan.zhihu.com/p/129912419)
 - [DistributedSampler的问题](https://www.zhihu.com/question/67209417/answer/1017851899)
 - I learned from this [repo](https://github.com/tczhangzhi/pytorch-distributed), and want to make it easier and cleaner.

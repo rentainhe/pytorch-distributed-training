@@ -37,6 +37,7 @@ def main():
         - nprocs 总共有多少个进程参与训练
         - args，自己指定的超参
 '''
+
 def main_worker(local_rank, nprocs, args):
     args.local_rank = local_rank
 
@@ -56,7 +57,7 @@ def main_worker(local_rank, nprocs, args):
     torch.cuda.set_device(local_rank) # 使用 set_device 和 cuda 来指定需要的 GPU
     model.cuda(local_rank)
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])  # 将模型用 DistributedDataParallel 包裹
-    criterion = nn.CrossEntropyLoss().cuda(local_rank)
+    criterion = nn.CrossEntropyLoss()
     # =================================
     optimizer = torch.optim.SGD(model.parameters(), args.lr, momentum=0.9, weight_decay=1e-4)
     train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
