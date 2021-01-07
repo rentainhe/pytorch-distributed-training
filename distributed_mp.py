@@ -28,7 +28,7 @@ def main():
     args = parser.parse_args()
     args.nprocs = torch.cuda.device_count()
 
-    main_worker(args.local_rank, args.nprocs, args)
+    mp.spawn(main_worker, nprocs=args.nprocs, args=(args.nprocs, args))
 
 '''
     需要定义一个 main_worker，用来进行分布式训练，训练流程都需要写在 main_worker之中， main_worker就相当于每一个进程，通过传递的 local_rank 不同表示不同的进程

@@ -131,7 +131,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python distributed.py
 import torch.distributed as dist
 dist.init_process_group(backend='nccl', init_method='tcp://ip:port', world_size=..., rank=...)
 ```
-- init_method: ip对应于本机ip，port对应本机空闲的端口
+- init_method: ip对应于本机ip，port对应本机空闲的端口，所有进程的`ip:port`必须一致，设定为主进程的`ip:port`
 
 ### 2. DistributedSampler
 在 `Pytorch1.2` 版本之前，DistributedSampler没有`shuffle`参数，在 `Pytorch1.2` 之后出现`shuffle`参数，但是在采样数据的时候，shuffle使用的随机种子等于当前的epoch
