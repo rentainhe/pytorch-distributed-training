@@ -76,6 +76,7 @@ def main_worker(local_rank, nprocs, args):
 
     for epoch in range(args.epochs):
         start = time.time()
+        model.train()
         # 需要设置sampler的epoch为当前epoch来保证dataloader的shuffle的有效性
         train_sampler.set_epoch(epoch)
 
