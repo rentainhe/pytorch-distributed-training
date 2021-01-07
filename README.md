@@ -158,7 +158,8 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node
 ```
 参考 [distributed.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/distributed.py)
 
-#### 6. 使用 torch.multiprocessing 来解决进程自发控制可能产生问题，这种方式比较稳定，推荐使用
+#### 6. torch.multiprocessing 
+使用`torch.multiprocessing`来解决进程自发控制可能产生问题，这种方式比较稳定，推荐使用
 ```python
 import argparse
 import torch
@@ -182,6 +183,10 @@ if __name__ == '__main__':
     main()
 ```
 
+参考 [distributed_mp.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/distributed_mp.py) 启动方式如下:
+```bash
+$ CUDA_VISIBLE_DEVICES=0,1,2,3 python distributed_mp.py
+```
 
 
 ## Details
