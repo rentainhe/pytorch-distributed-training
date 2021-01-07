@@ -118,6 +118,7 @@ def main_worker(local_rank, nprocs, args):
     
     # 正常的 train 流程
     for epoch in range(300):
+       model.train()
        for batch_idx, (images, target) in enumerate(trainloader):
           images = images.cuda(non_blocking=True)
           target = target.cuda(non_blocking=True)
