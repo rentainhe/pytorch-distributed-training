@@ -156,6 +156,11 @@ if __name__ == '__main__':
 ```bash
 CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 distributed.py
 ```
+参数说明:
+- --nnodes 表示机器的数量
+- --node_rank 表示当前的机器
+- --nproc_per_node 表示每台机器上的进程数量
+
 参考 [distributed.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/distributed.py)
 
 #### 6. torch.multiprocessing 
@@ -281,6 +286,7 @@ def main_worker(local_rank, nprocs, args):
 
 ## Implemented Work
 参考的文章如下（如果有文章没有引用，但是内容差不多的，可以提issue给我，我会补上，实在抱歉）：
+- [Pytorch: DDP系列](https://zhuanlan.zhihu.com/p/178402798)
 - [分布式训练](https://zhuanlan.zhihu.com/p/98535650)
 - [分布式训练（理论篇）](https://zhuanlan.zhihu.com/p/129912419)
 - [DistributedSampler的问题](https://www.zhihu.com/question/67209417/answer/1017851899)
