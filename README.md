@@ -160,6 +160,10 @@ if __name__ == '__main__':
 ```bash
 CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 distributed.py
 ```
+
+- `--ip=str`, e.g `--ip='10.24.82.10'` 来指定本机的ip地址
+- `--port=int`, e.g `--port=23456` 来指定启动端口号
+
 参数说明:
 - --nnodes 表示机器的数量
 - --node_rank 表示当前的机器
@@ -197,6 +201,8 @@ if __name__ == '__main__':
 $ CUDA_VISIBLE_DEVICES=0,1,2,3 python distributed_mp.py
 ```
 
+- `--ip=str`, e.g `--ip='10.24.82.10'` 来指定本机的ip地址
+- `--port=int`, e.g `--port=23456` 来指定启动端口号
 
 ## Details
 ### 1. DDP initialization
