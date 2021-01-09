@@ -4,6 +4,9 @@ Distribute Dataparallel (DDP) Training on Pytorch
 ## Features
 * Easy to study DDP training
 * You can directly copy this code for a quick start
+* Learning Notes Sharing:
+  - [Pytorch Gradient Accumulation](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/1.%20Gradient%20Accumulation.md)
+  - [More Details of DDP Training](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/2.%20DDP%20Training%20Skills.md)
 
 ## Knowledge
 ### 1. Basic Theory
