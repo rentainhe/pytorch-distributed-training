@@ -99,13 +99,13 @@ def main_worker(local_rank, nprocs, args):
 
                 outputs = model(sub_images)
                 loss = criterion(outputs, sub_labels)
-                loss_tmp += loss.cpu().deta.numpy()
+                loss_tmp += loss
                 loss = loss / args.grad_accu_steps
                 loss.backward()
 
             # torch.distributed.barrier()的作用是，阻塞进程，保证每个进程运行完这一行代码之前的所有代码，才能继续执行，这样才计算平均loss和平均acc的时候不会出现因为进程执行速度不一致的错误
             torch.distributed.barrier()
-            reduced_loss = reduce_mean(torch.from_numpy(loss_tmp), args.nprocs)
+            reduced_loss = reduce_mean(loss_tmp, args.nprocs)
 
             # 更新优化模型权重
             optimizer.step()
