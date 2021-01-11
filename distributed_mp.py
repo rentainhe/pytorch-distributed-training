@@ -65,14 +65,14 @@ def main_worker(local_rank, nprocs, args):
     # 2. 基本定义，模型-损失函数-优化器
     model = resnet18()  # 定义模型，将对应进程放到对应的GPU上， .cuda(local_rank) / .set_device(local_rank)
 
-    # 以下是需要加 local_rank 的部分：模型，损失函数
+    # 以下是需要加 local_rank 的部分：模型
     # ================================
     torch.cuda.set_device(local_rank) # 使用 set_device 和 cuda 来指定需要的 GPU
     model.cuda(local_rank)
     model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model).to(local_rank)
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])  # 将模型用 DistributedDataParallel 包裹
-    criterion = nn.CrossEntropyLoss().cuda(local_rank)
     # =================================
+    criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), args.lr, momentum=0.9, weight_decay=1e-4)
     train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
 
@@ -97,9 +97,9 @@ def main_worker(local_rank, nprocs, args):
         train_scheduler.step(epoch)
 
         for step, (images, labels) in enumerate(train_loader):
-            # 将对应进程的数据放到对应 GPU 上
-            images = images.cuda(local_rank, non_blocking=True)
-            labels = labels.cuda(local_rank, non_blocking=True)
+            # 将对应进程的数据放到 GPU 上
+            images = images.cuda(non_blocking=True)
+            labels = labels.cuda(non_blocking=True)
 
             outputs = model(images)
             loss = criterion(outputs, labels)

@@ -13,6 +13,11 @@ Distribute Dataparallel (DDP) Training on Pytorch
 
 ### Quick start
 想直接运行查看结果的可以执行以下命令
+- [dataparaller.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/dataparallel.py)
+```bash
+python dataparallel.py --gpu 0,1,2,3
+```
+
 - [distributed.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/distributed.py)
 ```bash
 CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 distributed.py
@@ -42,6 +47,8 @@ $ CUDA_VISIBLE_DEVICES=0,1,2,3 python distributed_apex.py
 
 
 ### Comparison
+结果不够准确，GPU状态不同结果可能差异较大
+
 默认情况下都使用`SyncBatchNorm`, 这会导致执行速度变慢一些，因为需要增加进程之间的通讯来计算`BatchNorm`, 但有利于保证准确率
 
 Concepts
@@ -54,7 +61,8 @@ Environments
 
 |model|dataset|training method|time(seconds/epoch)|Top-1 accuracy
 |:---:|:---:|:---:|:---:|:---:
-|resnet18|cifar100|DP||
+|resnet18|cifar100|DP|22s|
+|resnet18|cifar100|DP+apex|22s|
 |resnet18|cifar100|DDP|16s|
 |resnet18|cifar100|DDP+apex|14.5s|
 
