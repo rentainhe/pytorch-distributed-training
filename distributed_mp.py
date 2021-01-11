@@ -14,6 +14,8 @@ from utils.util import reduce_mean
 from utils.validation import validate
 import torch.optim as optim
 import torch.multiprocessing as mp
+import random
+import numpy as np
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('--local_rank', default=-1, type=int, help='node rank for distributed training')
@@ -23,6 +25,18 @@ parser.add_argument('--epochs', default=200, type=int)
 parser.add_argument('--lr', default=0.1, type=float)
 parser.add_argument('--ip', default='10.24.82.29', type=str)
 parser.add_argument('--port', default='23456', type=str)
+
+def init_seeds(seed=0, cuda_deterministic=True):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    # Speed-reproducibility tradeoff https://pytorch.org/docs/stable/notes/randomness.html
+    if cuda_deterministic:  # slower, more reproducible
+        cudnn.deterministic = True
+        cudnn.benchmark = False
+    else:  # faster, less reproducible
+        cudnn.deterministic = False
+        cudnn.benchmark = True
 
 def main():
     args = parser.parse_args()
@@ -39,7 +53,7 @@ def main():
 '''
 def main_worker(local_rank, nprocs, args):
     args.local_rank = local_rank
-
+    init_seeds(local_rank+1) # set different seed for each worker
     # 获得init_method的通信端口
     init_method = 'tcp://' + args.ip + ':' + args.port
 

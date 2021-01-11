@@ -96,12 +96,19 @@ def main_worker(local_rank, nprocs, args):
                 sub_labels = labels[accu_step * sub_batch_size:
                                     (accu_step + 1) * sub_batch_size]
                 sub_labels = sub_labels.cuda(local_rank, non_blocking=True)
-
-                outputs = model(sub_images)
-                loss = criterion(outputs, sub_labels)
-                loss_tmp += loss
-                loss = loss / args.grad_accu_steps
-                loss.backward()
+                if accu_step == args.grad_accu_steps - 1:
+                    outputs = model(sub_images)
+                    loss = criterion(outputs, sub_labels)
+                    loss_tmp += loss
+                    loss = loss / args.grad_accu_steps
+                    loss.backward()
+                else:
+                    with model.no_sync():
+                        outputs = model(sub_images)
+                        loss = criterion(outputs, sub_labels)
+                        loss_tmp += loss
+                        loss = loss / args.grad_accu_steps
+                        loss.backward()
 
             # torch.distributed.barrier()的作用是，阻塞进程，保证每个进程运行完这一行代码之前的所有代码，才能继续执行，这样才计算平均loss和平均acc的时候不会出现因为进程执行速度不一致的错误
             torch.distributed.barrier()
