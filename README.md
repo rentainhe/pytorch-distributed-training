@@ -1,7 +1,7 @@
-# pytorch-distributed-training
+## pytorch-distributed-training
 Distribute Dataparallel (DDP) Training on Pytorch
 
-## Features
+### Features
 * Easy to study DDP training
 * You can directly copy this code for a quick start
 * Learning Notes Sharing:
@@ -9,6 +9,15 @@ Distribute Dataparallel (DDP) Training on Pytorch
   - [Pytorch Gradient Accumulation](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/1.%20Gradient%20Accumulation.md)
   - [More Details of DDP Training](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/2.%20DDP%20Training%20Skills.md)
   - [Accelerate-on-Accelerate DDP Training Tricks](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/3.%20DDP%20Training%20Tricks.md)
+
+### comparison
+Environments
+- four 2080Ti
+
+|model|dataset|time(seconds/epoch)|Top-1 accuracy|Top-5 accuracy|
+|:---:|:---:|:---:|:---:|:---:
+|resnet18|cifar100|16s||
+|resnet18|cifar100|13s(with apex)||
 
 ### Basic Concept
 - group: 表示进程组，默认情况下只有一个进程组。
@@ -149,6 +158,7 @@ def main():
 if __name__ == '__main__':
     main()
 ```
+
 
 参考 [distributed_mp.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/distributed_mp.py) 启动方式如下:
 ```bash
