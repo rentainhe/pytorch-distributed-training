@@ -9,7 +9,7 @@ Distribute Dataparallel (DDP) Training on Pytorch
   - [Pytorch Gradient Accumulation](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/1.%20Gradient%20Accumulation.md)
   - [More Details of DDP Training](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/2.%20DDP%20Training%20Skills.md)
   - [Accelerate-on-Accelerate DDP Training Tricks](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/3.%20DDP%20Training%20Tricks.md)
-  - [DDP training with apex]()
+  - [DDP training with apex](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/4.%20DDP%20with%20apex.md)
 
 ### Quick start
 想直接运行查看结果的可以执行以下命令
