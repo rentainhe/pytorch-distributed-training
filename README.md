@@ -9,15 +9,54 @@ Distribute Dataparallel (DDP) Training on Pytorch
   - [Pytorch Gradient Accumulation](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/1.%20Gradient%20Accumulation.md)
   - [More Details of DDP Training](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/2.%20DDP%20Training%20Skills.md)
   - [Accelerate-on-Accelerate DDP Training Tricks](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/3.%20DDP%20Training%20Tricks.md)
+  - [DDP training with apex]()
 
-### comparison
+### Quick start
+想直接运行查看结果的可以执行以下命令
+- distributed.py
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 distributed.py
+```
+
+- distributed_mp.py
+```bash
+$ CUDA_VISIBLE_DEVICES=0,1,2,3 python distributed_mp.py
+```
+
+- distributed_apex.py
+```bash
+$ CUDA_VISIBLE_DEVICES=0,1,2,3 python distributed_apex.py
+```
+
+- `--ip=str`, e.g `--ip='10.24.82.10'` 来指定主进程的ip地址
+- `--port=int`, e.g `--port=23456` 来指定启动端口号
+- `--batch_size=int`, e.g `--batch_size=128` 设定训练batch_size
+
+- distributed_gradient_accumulation.py
+```bash
+$ CUDA_VISIBLE_DEVICES=0,1,2,3 python distributed_apex.py
+```
+- `--ip=str`, e.g `--ip='10.24.82.10'` 来指定主进程的ip地址
+- `--port=int`, e.g `--port=23456` 来指定启动端口号
+- `--grad_accu_steps=int`, e.g `--grad_accu_steps=4'` 来指定gradient_step
+
+
+### Comparison
+默认情况下都使用`SyncBatchNorm`, 这会导致执行速度变慢一些，因为需要增加进程之间的通讯来计算`BatchNorm`, 但有利于保证准确率
+
+Concepts
+- [apex](https://github.com/NVIDIA/apex)
+- DP: `DataParallel`
+- DDP: `DistributedDataParallel`
+
 Environments
-- four 2080Ti
+- 4 × 2080Ti
 
-|model|dataset|time(seconds/epoch)|Top-1 accuracy|Top-5 accuracy|
+|model|dataset|training method|time(seconds/epoch)|Top-1 accuracy
 |:---:|:---:|:---:|:---:|:---:
-|resnet18|cifar100|16s||
-|resnet18|cifar100|13s(with apex)||
+|resnet18|cifar100|DP||
+|resnet18|cifar100|DDP|16s|
+|resnet18|cifar100|DDP+apex|14.5s|
 
 ### Basic Concept
 - group: 表示进程组，默认情况下只有一个进程组。
@@ -124,7 +163,7 @@ if __name__ == '__main__':
 CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 distributed.py
 ```
 
-- `--ip=str`, e.g `--ip='10.24.82.10'` 来指定本机的ip地址
+- `--ip=str`, e.g `--ip='10.24.82.10'` 来指定主进程的ip地址
 - `--port=int`, e.g `--port=23456` 来指定启动端口号
 
 参数说明:
@@ -165,7 +204,7 @@ if __name__ == '__main__':
 $ CUDA_VISIBLE_DEVICES=0,1,2,3 python distributed_mp.py
 ```
 
-- `--ip=str`, e.g `--ip='10.24.82.10'` 来指定本机的ip地址
+- `--ip=str`, e.g `--ip='10.24.82.10'` 来指定主进程的ip地址
 - `--port=int`, e.g `--port=23456` 来指定启动端口号
 
 
