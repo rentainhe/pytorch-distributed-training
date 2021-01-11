@@ -13,17 +13,17 @@ Distribute Dataparallel (DDP) Training on Pytorch
 
 ### Quick start
 想直接运行查看结果的可以执行以下命令
-- distributed.py
+- [distributed.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/distributed.py)
 ```bash
 CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 distributed.py
 ```
 
-- distributed_mp.py
+- [distributed_mp.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/distributed_mp.py)
 ```bash
 $ CUDA_VISIBLE_DEVICES=0,1,2,3 python distributed_mp.py
 ```
 
-- distributed_apex.py
+- [distributed_apex.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/distributed_apex.py)
 ```bash
 $ CUDA_VISIBLE_DEVICES=0,1,2,3 python distributed_apex.py
 ```
@@ -32,7 +32,7 @@ $ CUDA_VISIBLE_DEVICES=0,1,2,3 python distributed_apex.py
 - `--port=int`, e.g `--port=23456` 来指定启动端口号
 - `--batch_size=int`, e.g `--batch_size=128` 设定训练batch_size
 
-- distributed_gradient_accumulation.py
+- [distributed_gradient_accumulation.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/distributed_gradient_accumulation.py)
 ```bash
 $ CUDA_VISIBLE_DEVICES=0,1,2,3 python distributed_apex.py
 ```
