@@ -5,10 +5,17 @@ Distribute Dataparallel (DDP) Training on Pytorch
 * Easy to study DDP training
 * You can directly copy this code for a quick start
 * Learning Notes Sharing:
-  - [Basic Theory]()
+  - [Basic Theory](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/0.%20Basic%20Theory.md)
   - [Pytorch Gradient Accumulation](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/1.%20Gradient%20Accumulation.md)
   - [More Details of DDP Training](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/2.%20DDP%20Training%20Skills.md)
-  - [Accelerate-on-Accelerate DDP Training Tricks]()
+  - [Accelerate-on-Accelerate DDP Training Tricks](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/3.%20DDP%20Training%20Tricks.md)
+
+### Basic Concept
+- group: 表示进程组，默认情况下只有一个进程组。
+- world size: 全局进程个数
+- rank: 进程序号，用于进程间通讯，表示进程优先级，`rank=0`表示`主进程`
+- local_rank: 进程内，`GPU`编号，非显示参数，由`torch.distributed.launch`内部指定，`rank=3, local_rank=0` 表示第`3`个进程的第`1`块`GPU`
+
 
 ### Usage 单机多卡
 #### 1. 获取当前进程的index
