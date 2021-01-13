@@ -15,12 +15,12 @@ Distribute Dataparallel (DDP) Training on Pytorch
 想直接运行查看结果的可以执行以下命令
 - [dataparaller.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/dataparallel.py)
 ```bash
-python dataparallel.py --gpu 0,1,2,3
+$ python dataparallel.py --gpu 0,1,2,3
 ```
 
 - [distributed.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/distributed.py)
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 distributed.py
+$ CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 distributed.py
 ```
 
 - [distributed_mp.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/distributed_mp.py)

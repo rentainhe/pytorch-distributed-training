@@ -51,19 +51,20 @@ def main_worker(gpus, args):
 
     # apex initialization
     model, optimizer = amp.initialize(model, optimizer)
+
     # 如果使用的GPU数量大于1，需要用nn.DataParallel来修饰模型
     if len(gpus) > 1:
         model = nn.DataParallel(model, device_ids=gpus, output_device=gpus[0])
 
+    # Define Training Schedule and Dataloader
     train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
-
     train_dataset = get_train_dataset()
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, num_workers=4,
                                                pin_memory=True)
-
     test_dataset = get_test_dataset()
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, num_workers=4, pin_memory=True)
 
+    # Training
     for epoch in range(args.epochs):
         start = time.time()
         model.train()
