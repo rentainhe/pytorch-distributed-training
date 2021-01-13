@@ -168,7 +168,7 @@ if __name__ == '__main__':
 
 #### 5. Command Line 启动
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 distributed.py
+$ CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 distributed.py
 ```
 
 - `--ip=str`, e.g `--ip='10.24.82.10'` 来指定主进程的ip地址
