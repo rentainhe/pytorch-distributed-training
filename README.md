@@ -10,6 +10,7 @@ Distribute Dataparallel (DDP) Training on Pytorch
   - [More Details of DDP Training](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/2.%20DDP%20Training%20Skills.md)
   - [Accelerate-on-Accelerate DDP Training Tricks](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/3.%20DDP%20Training%20Tricks.md)
   - [DDP training with apex](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/4.%20DDP%20with%20apex.md)
+  - [DP and DDP 源码解读]()
 
 ### Quick start
 想直接运行查看结果的可以执行以下命令, 注意一定要用`--ip`和`--port`来指定主机的`ip`地址以及空闲的`端口`，否则可能无法运行
