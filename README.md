@@ -12,7 +12,7 @@ Distribute Dataparallel (DDP) Training on Pytorch
   - [DDP training with apex](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/4.%20DDP%20with%20apex.md)
 
 ### Quick start
-想直接运行查看结果的可以执行以下命令
+想直接运行查看结果的可以执行以下命令, 注意一定要用`--ip`和`--port`来指定主机的`ip`地址以及空闲的`端口`，否则可能无法运行
 - [dataparaller.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/dataparallel.py)
 ```bash
 $ python dataparallel.py --gpu 0,1,2,3
