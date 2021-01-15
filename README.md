@@ -17,6 +17,10 @@ Distribute Dataparallel (DDP) Training on Pytorch
 - [分布式训练（理论篇）](https://zhuanlan.zhihu.com/p/129912419)
 - [当代研究生应当掌握的并行训练方法（单机多卡）](https://zhuanlan.zhihu.com/p/98535650)
 
+### TODO
+- [ ] 完成DP和DDP源码解读笔记(当前进度50%)
+- [ ] 修改代码细节, 复现实验结果
+
 ### Quick start
 想直接运行查看结果的可以执行以下命令, 注意一定要用`--ip`和`--port`来指定主机的`ip`地址以及空闲的`端口`，否则可能无法运行
 - [dataparaller.py](https://github.com/rentainhe/pytorch-distributed-training/blob/master/dataparallel.py)
@@ -67,14 +71,17 @@ Environments
 
 |model|dataset|training method|time(seconds/epoch)|Top-1 accuracy
 |:---:|:---:|:---:|:---:|:---:
-|resnet18|cifar100|DP|22s|
-|resnet18|cifar100|DP+apex|22s|
+|resnet18|cifar100|DP|20s|
+|resnet18|cifar100|DP+apex|18s|
 |resnet18|cifar100|DDP|16s|
 |resnet18|cifar100|DDP+apex|14.5s|
 
 ### Basic Concept
 - group: 表示进程组，默认情况下只有一个进程组。
 - world size: 全局进程个数
+  - 比如16张卡`单卡单进程`: world size = 16
+  - `8卡单进程`: world size = 1
+  - 只有当连接的进程数等于world size, 程序才会执行
 - rank: 进程序号，用于进程间通讯，表示进程优先级，`rank=0`表示`主进程`
 - local_rank: 进程内，`GPU`编号，非显示参数，由`torch.distributed.launch`内部指定，`rank=3, local_rank=0` 表示第`3`个进程的第`1`块`GPU`
 
