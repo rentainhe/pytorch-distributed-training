@@ -229,7 +229,7 @@ $ CUDA_VISIBLE_DEVICES=0,1,2,3 python distributed_mp.py
 - `--port=int`, e.g `--port=23456` 来指定启动端口号
 
 
-## Implemented Work
+## Reference
 参考的文章如下（如果有文章没有引用，但是内容差不多的，可以提issue给我，我会补上，实在抱歉）：
 - [Pytorch: DDP系列](https://zhuanlan.zhihu.com/p/178402798)
 - [分布式训练](https://zhuanlan.zhihu.com/p/98535650)
