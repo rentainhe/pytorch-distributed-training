@@ -9,8 +9,8 @@ Distribute Dataparallel (DDP) Training on Pytorch
   - [x] [Pytorch Gradient Accumulation](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/1.%20Gradient%20Accumulation.md)
   - [x] [More Details of DDP Training](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/2.%20DDP%20Training%20Details.md)
   - [x] [DDP training with apex](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/4.%20DDP%20with%20apex.md)
-  - [ ] [Accelerate-on-Accelerate DDP Training Tricks](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/3.%20DDP%20Training%20Tricks.md)
-  - [ ] [DP and DDP 源码解读](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/5.%20DP%20and%20DDP.md)
+  - [x] [Accelerate-on-Accelerate DDP Training Tricks](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/3.%20DDP%20Training%20Tricks.md)
+  - [x] [DP and DDP 源码解读](https://github.com/rentainhe/pytorch-distributed-training/blob/master/tutorials/5.%20DP%20and%20DDP.md)
 
 ### Good Notes
 分享一些网上优质的笔记
